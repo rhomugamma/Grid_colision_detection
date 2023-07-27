@@ -559,7 +559,7 @@ void collisionDetection(std::vector<object>& objects, std::vector<std::vector<ob
 					float comparasionCellX = x + dx;
 					float comparasionCellY = y + dy;
 
-					/* collisionDetection(actualCellX, actualCellY, comparasionCellX, comparasionCellY, grid); */
+					collisionDetection(actualCellX, actualCellY, comparasionCellX, comparasionCellY, grid);
 				
 				}
 
@@ -573,7 +573,7 @@ void collisionDetection(std::vector<object>& objects, std::vector<std::vector<ob
 
 void updateGrid(std::vector<object>& objects, std::vector<std::vector<object>>& grid) {
 
-	grid.clear();
+	/* grid.clear(); */
 
 	for (int i = 0; i < objects.size(); i++) {
 
