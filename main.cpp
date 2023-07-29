@@ -8,11 +8,11 @@ const float PI = 3.14159265358979323;
 
 const float g = 9.80665;
 
-const int GRID_WIDTH = 100;
+const int GRID_WIDTH = 20;
 
-const int GRID_HEIGHT = 100;
+const int GRID_HEIGHT = 20;
 
-const float gridCellSize = 0.1;
+const float gridCellSize = 5;
 
 
 class box {
@@ -116,25 +116,25 @@ class object {
 
 		float velocityX;
 		float velocityY;
-		float velocityModule = sqrt((velocityX * velocityX) + (velocityY * velocityY));
+		/* float velocityModule = sqrt((velocityX * velocityX) + (velocityY * velocityY)); */
 
 		float accelerationX;
 		float accelerationY;
-		float accelerationModule = sqrt((accelerationX * accelerationX) + (accelerationY * accelerationY));
+		/* float accelerationModule = sqrt((accelerationX * accelerationX) + (accelerationY * accelerationY)); */
 
-		float angularVelocityZ;
-		float angularVelocityModule = sqrt(angularVelocityZ * angularVelocityZ);
+		/* float angularVelocityZ; */
+		/* float angularVelocityModule = sqrt(angularVelocityZ * angularVelocityZ); */
 
-		float angularAccelerationZ;
-		float angularAcceleration = sqrt(angularAccelerationZ * angularAccelerationZ);
+		/* float angularAccelerationZ; */
+		/* float angularAcceleration = sqrt(angularAccelerationZ * angularAccelerationZ); */
 
-		float linearMomentumX = (mass) * (velocityX);
-	   	float linearMomentumY = (mass) * (velocityY);
-		float linearMomentumModule = sqrt((linearMomentumX * linearMomentumX) + (linearMomentumY * linearMomentumY));
- 		float momentInertia = (mass * (radius * radius)) / (2);
+		/* float linearMomentumX = (mass) * (velocityX); */
+	   	/* float linearMomentumY = (mass) * (velocityY); */
+		/* float linearMomentumModule = sqrt((linearMomentumX * linearMomentumX) + (linearMomentumY * linearMomentumY)); */
+ 		/* float momentInertia = (mass * (radius * radius)) / (2); */
 
-		float kinetickEnergy = ((0.5) + (mass) + (velocityModule * velocityModule)) + ((0.5) + (momentInertia) + (angularVelocityZ * angularVelocityZ)); 
-		float potentialEnergy = (mass) * (g) * (coordinatesY + 0.5);
+		/* float kinetickEnergy = ((0.5) + (mass) + (velocityModule * velocityModule)) + ((0.5) + (momentInertia) + (angularVelocityZ * angularVelocityZ)); */ 
+		/* float potentialEnergy = (mass) * (g) * (coordinatesY + 0.5); */
 
 		//Time characteristics
 		float deltaTime;
@@ -173,7 +173,7 @@ class object {
 		}
 
 
-		void updateObjectPosition(std::vector<object>& objects, box box1) {
+		void updateObjectPosition(std::vector<object>& objects, box box1, std::vector<std::vector<object>> grid) {
 
 		GLfloat totalTime = glfwGetTime();
 		deltaTime = totalTime - frameTime;
@@ -181,7 +181,7 @@ class object {
 
 		borderCollision(box1);
 
-		/* objectCollision(objects); */
+		collisionDetection(objects, grid);
 
 		coordinatesX = (coordinatesX) + (velocityX * deltaTime) + ((1/2) * (accelerationX) * (deltaTime * deltaTime));	
 		coordinatesY = (coordinatesY) + (velocityY * deltaTime) + ((1/2) * (accelerationY) * (deltaTime * deltaTime));
@@ -250,36 +250,117 @@ class object {
 
 		}	
 
+		void collisionDetection(std::vector<object>& objects, std::vector<std::vector<object>>& grid) {
 
-		void objectCollision(std::vector<object>& objects) {
+			updateGrid(objects, grid);
+
+			for (int x = 0; x < GRID_WIDTH; x++) {
+
+				for (int y = 0; y < GRID_HEIGHT; y++) {
+
+					float actualCellX = x;
+					float actualCellY = y;
+
+					for (int dx = -1; dx <= 1; dx++) {
+
+						for (int dy = -1; dy <= 1; dy++) {
+
+							float comparasionCellX = x + dx;
+							float comparasionCellY = y + dy;
+
+							if (actualCellX >= 0 && actualCellX < GRID_WIDTH && actualCellY >= 0 && actualCellY < GRID_HEIGHT && comparasionCellX >= 0 && comparasionCellX < GRID_WIDTH && comparasionCellY >= 0 && comparasionCellY < GRID_HEIGHT) {
+
+								collisionUpdate(actualCellX, actualCellY, comparasionCellX, comparasionCellY, grid);
+					
+							}
+
+						}
+
+					}
+
+				}
+
+			}
+
+		}
+	
+		void updateGrid(std::vector<object>& objects, std::vector<std::vector<object>>& grid) {
+
+			for (int x = 0; x < GRID_WIDTH; x++) {
+        		
+				for (int y = 0; y < GRID_HEIGHT; y++) {
+            
+					grid[x][y] = object();
+        		
+				}
+    		
+			}
+
 
 			for (int i = 0; i < objects.size(); i++) {
 
-				for (int j = i + 1; j < objects.size(); j++) {
+				addObjectToGrid(objects[i], grid);
 
-						float dx = objects[j].coordinatesX - objects[i].coordinatesX - (objects[j].radius - objects[i].radius);
-						float dy = objects[j].coordinatesY - objects[i].coordinatesY - (objects[j].radius - objects[i].radius);
-						float distance = sqrt((dx * dx) + (dy * dy));
+			}
+	
+		}
+ 
+		void addObjectToGrid(object& obt, std::vector<std::vector<object>>& grid) {
 
-						float limit = objects[i].radius + objects[j].radius;
+			int startX, startY, endX, endY;
 
-						if (distance <= limit) {
+			getGridIndex(obt.coordinatesX - obt.radius, obt.coordinatesY + obt.radius, startX, endX);
+			getGridIndex(obt.coordinatesX + obt.radius, obt.coordinatesY - obt.radius, startY, endY);
+	
+			if (startX >= 0 && endX < GRID_WIDTH && startY >= 0 && endY < GRID_HEIGHT) {
 
-							float normalX = dx / distance;
-			                float normalY = dy / distance;
+				for (int x = startX; x <= endX; x++) {
 
-                			float relativeVelocityX = objects[j].velocityX - objects[i].velocityX;
-               		 		float relativeVelocityY = objects[j].velocityY - objects[i].velocityY;
-                			float dotProduct = (relativeVelocityX * normalX) + (relativeVelocityY * normalY);
+					for (int y = startY; y <= endY; y++) {
 
-	            		    objects[i].velocityX += normalX * dotProduct;
-    	            		objects[i].velocityY += normalY * dotProduct;
-        	        		objects[j].velocityX -= normalX * dotProduct;
-            	    		objects[j].velocityY -= normalY * dotProduct;
+						grid[x][y] = obt;
 
-						}	
+					}
 
-				}
+				}	
+
+			}
+
+		}
+
+		void getGridIndex(float coordinatesX, float coordinatesY, int& gridX, int& gridY) {
+	
+			float sum = 1 / gridCellSize;
+
+			gridX = static_cast<int>((coordinatesX / gridCellSize) + (sum));
+			gridY = static_cast<int>((coordinatesY / gridCellSize) + (sum));
+
+		}
+
+		
+		void collisionUpdate(int actualCellX, int actualCellY, int comparasionCellX, int comparasionCellY, std::vector<std::vector<object>>& grid) {
+
+			float dx = (grid[actualCellX][actualCellY].coordinatesX - grid[comparasionCellX][comparasionCellY].coordinatesX) - (grid[actualCellX][actualCellY].radius - grid[comparasionCellX][comparasionCellY].radius);
+			float dy = (grid[actualCellX][actualCellY].coordinatesY - grid[comparasionCellX][comparasionCellY].coordinatesY) - (grid[actualCellX][actualCellY].radius - grid[comparasionCellX][comparasionCellY].radius);
+			float distance = sqrt((dx * dx) + (dy * dy));
+	
+			float limit = (grid[actualCellX][actualCellY].radius) + (grid[comparasionCellX][comparasionCellY].radius);
+
+			if (distance <= limit) {
+
+				float normalX = dx / distance;
+				float normalY = dy / distance;
+
+				float relativeVelocityX = grid[actualCellX][actualCellY].velocityX - grid[comparasionCellX][comparasionCellY].velocityX;
+				float relativeVelocityY = grid[actualCellX][actualCellY].velocityY - grid[comparasionCellX][comparasionCellY].velocityY;
+
+				float dotProduct = (relativeVelocityX * normalX) + (relativeVelocityY * normalY);
+
+				grid[actualCellX][actualCellY].velocityX += normalX * dotProduct;
+				grid[actualCellX][actualCellY].velocityY += normalY * dotProduct;		
+		
+				grid[comparasionCellX][comparasionCellY].velocityX -= normalX * dotProduct;
+				grid[comparasionCellX][comparasionCellY].velocityY -= normalY * dotProduct;
 
 			}
 
@@ -330,7 +411,7 @@ const GLchar* fragmentShaderSource = R"(
 
 void init(std::vector<object>& objects, int numberOfParticles);
 
-void display(std::vector<object>& objects, box box1, GLFWwindow* window, GLuint& shaderProgram);
+void display(std::vector<object>& objects, box box1, GLFWwindow* window, GLuint& shaderProgram, std::vector<std::vector<object>>& grid);
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 
@@ -340,15 +421,16 @@ void renderbox(box box1);
 
 void updateObjectPosition(object& obt);
 
-void collisionDetection(std::vector<object>& objects, std::vector<std::vector<object>>& grid);
+/* void collisionDetection(std::vector<object>& objects, std::vector<std::vector<object>>& grid); */
 
-void updateGrid(std::vector<object>& objects, std::vector<std::vector<object>>& grid);
+/* void updateGrid(std::vector<object>& objects, std::vector<std::vector<object>>& grid); */
 
-void addObjectToGrid(object& obt, std::vector<std::vector<object>>& grid);
+/* void addObjectToGrid(object& obt, std::vector<std::vector<object>>& grid); */
 
-void getGridIndex(float coordinatesX, float coordinatesY, int& gridX, int& gridY);
+/* void getGridIndex(float coordinatesX, float coordinatesY, int& gridX, int& gridY); */
 
-void collisionDetection(int actualCellX, int actualCellY, int comparasionCellX, int comparasionCellY, std::vector<std::vector<object>>& grid);
+/* void collisionUpdate(int actualCellX, int actualCellY, int comparasionCellX, int comparasionCellY, std::vector<std::vector<object>>& grid); */
+
 
 
 int main() {
@@ -361,7 +443,7 @@ int main() {
 
 	GLuint shaderProgram;
 
-	int numberOfParticles = 3;
+	int numberOfParticles = 5;
 
 
     if (!glfwInit()) {
@@ -423,10 +505,7 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
 
         glfwPollEvents();
-
-		collisionDetection(objects, grid);
-
-		display(objects, box1, window, shaderProgram);
+		display(objects, box1, window, shaderProgram, grid);
     
 	}
 
@@ -442,7 +521,7 @@ void init(std::vector<object>& objects, int numberOfParticles) {
 	float xposition = -0.0;
 	float yposition =  0.0;
 	float yprime = yposition;
-	float height = 0.94;
+	float height = 0.5;
 	float increase = height / numberOfParticles;
 	
 
@@ -455,7 +534,7 @@ void init(std::vector<object>& objects, int numberOfParticles) {
 		objects[i].color1 = 1.0;
 		objects[i].color2 = 0.0;
 		objects[i].color3 = 0.0;
-		objects[i].e = 1;
+		objects[i].e = 0.85;
 
 		objects[i].coordinatesX = xposition;
 		objects[i].coordinatesY = yposition;
@@ -466,9 +545,9 @@ void init(std::vector<object>& objects, int numberOfParticles) {
 		objects[i].accelerationX = 0.0;
 		objects[i].accelerationY = -0.0;
 
-		objects[i].angularVelocityZ = 0.0;
+		/* objects[i].angularVelocityZ = 0.0; */
 
-		objects[i].angularAccelerationZ = 0.0;
+		/* objects[i].angularAccelerationZ = 0.0; */
 
 		objects[i].deltaTime = 0.0;
 		objects[i].frameTime = 0.0;
@@ -491,7 +570,7 @@ void init(std::vector<object>& objects, int numberOfParticles) {
 	
 }
 
-void display(std::vector<object>& objects, box box1, GLFWwindow* window, GLuint& shaderProgram) {
+void display(std::vector<object>& objects, box box1, GLFWwindow* window, GLuint& shaderProgram, std::vector<std::vector<object>>& grid) {
 
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -502,8 +581,8 @@ void display(std::vector<object>& objects, box box1, GLFWwindow* window, GLuint&
 
 
 	for (int i = 0; i < objects.size(); i++) {
-
-		objects[i].updateObjectPosition(objects, box1);
+		
+		objects[i].updateObjectPosition(objects, box1, grid);
 		rendersphere(objects[i]);
 
 	}
@@ -538,105 +617,5 @@ void renderbox(box box1) {
 	glDrawArrays(GL_LINES, 8, 4);
 	glDrawArrays(GL_LINES, 12, 4);
 	glBindVertexArray(0);
-
-}
-
-void collisionDetection(std::vector<object>& objects, std::vector<std::vector<object>>& grid) {
-
-	updateGrid(objects, grid);
-
-	for (int x = 0; x < GRID_WIDTH; x++) {
-
-		for (int y = 0; y < GRID_HEIGHT; y++) {
-
-			float actualCellX = x;
-			float actualCellY = y;
-
-			for (int dx = -1; dx <= 1; dx++) {
-
-				for (int dy = -1; dy <= 1; dy++) {
-
-					float comparasionCellX = x + dx;
-					float comparasionCellY = y + dy;
-
-					if (actualCellX >= 0 && actualCellX <= GRID_WIDTH && actualCellY >= 0 && actualCellY <= GRID_HEIGHT && comparasionCellX >= 0 && comparasionCellX < GRID_WIDTH && comparasionCellY >= 0 && comparasionCellY < GRID_HEIGHT) {
-
-						collisionDetection(actualCellX, actualCellY, comparasionCellX, comparasionCellY, grid);
-					
-					}
-
-				}
-
-			}
-
-		}
-
-	}
-
-}
-
-void updateGrid(std::vector<object>& objects, std::vector<std::vector<object>>& grid) {
-
-	/* grid.clear(); */
-
-	for (int i = 0; i < objects.size(); i++) {
-
-		addObjectToGrid(objects[i], grid);
-
-	}
-
-}
-
-void addObjectToGrid(object& obt, std::vector<std::vector<object>>& grid) {
-
-	int startX, startY, endX, endY;
-
-	getGridIndex(obt.coordinatesX - obt.radius, obt.coordinatesY + obt.radius, startX, endX);
-	getGridIndex(obt.coordinatesX + obt.radius, obt.coordinatesY - obt.radius, startY, endY);
-	
-	for (int x = startX; x <= endX; x++) {
-
-		for (int y = startY; y <= endY; y++) {
-
-			grid[x][y] = obt;
-
-		}
-
-	}	
-
-}
-
-void getGridIndex(float coordinatesX, float coordinatesY, int& gridX, int& gridY) {
-
-	gridX = (coordinatesX / gridCellSize) + 10;
-	gridY = (coordinatesY / gridCellSize) + 10;
-
-}
-
-void collisionDetection(int actualCellX, int actualCellY, int comparasionCellX, int comparasionCellY, std::vector<std::vector<object>>& grid) {
-
-	float dx = (grid[actualCellX][actualCellY].coordinatesX - grid[comparasionCellX][comparasionCellY].coordinatesX) - (grid[actualCellX][actualCellY].radius - grid[comparasionCellX][comparasionCellY].radius);
-	float dy = (grid[actualCellX][actualCellY].coordinatesY - grid[comparasionCellX][comparasionCellY].coordinatesY) - (grid[actualCellX][actualCellY].radius - grid[actualCellX][actualCellY].radius);
-	float distance = sqrt((dx * dx) + (dy * dy));
-	
-	float limit = (grid[actualCellX][actualCellY].radius) + (grid[comparasionCellX][comparasionCellY].radius);
-
-	if (distance <= limit) {
-
-		float normalX = dx / distance;
-		float normalY = dy / distance;
-
-		float relativeVelocityX = grid[actualCellX][actualCellY].velocityX - grid[actualCellX][actualCellY].velocityX;
-		float relativeVelocityY = grid[actualCellX][actualCellY].velocityY - grid[actualCellX][actualCellY].velocityY;
-
-		float dotProduct = (relativeVelocityX * normalX) + (relativeVelocityY * normalY);
-
-		grid[actualCellX][actualCellY].velocityX += normalX * dotProduct;
-		grid[actualCellX][actualCellY].velocityY += normalY * dotProduct;		
-		
-		grid[comparasionCellX][comparasionCellY].velocityX -= normalX * dotProduct;
-		grid[comparasionCellX][comparasionCellY].velocityY -= normalY * dotProduct;
-
-	}
 
 }
