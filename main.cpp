@@ -8,12 +8,6 @@ const float PI = 3.14159265358979323;
 
 const float g = 9.80665;
 
-const int GRID_WIDTH = 20;
-
-const int GRID_HEIGHT = 20;
-
-const float gridCellSize = 5;
-
 
 class box {
 
@@ -29,10 +23,10 @@ class box {
 			 1.0, -1.0,
 			 1.0,  1.0,
 
-			 1.0,  1.0,
-			-1.0,  1.0,
+			 1.0, 1.0,
+			-1.0, 1.0,
 
-			-1.0,  1.0,
+			-1.0, 1.0,
 			-1.0, -1.0
 
 		};
@@ -157,13 +151,11 @@ class object {
 		}
 
 
-		void updateObjectPosition(std::vector<object>& objects, box box1, std::vector<std::vector<object*>>& grid) {
+		void updateObjectPosition(std::vector<object>& objects) {
 
 		GLfloat totalTime = glfwGetTime();
 		deltaTime = totalTime - frameTime;
 		frameTime = totalTime;
-
-		borderCollision(box1);
 
 		coordinatesX = (coordinatesX) + (velocityX * deltaTime) + ((1/2) * (accelerationX) * (deltaTime * deltaTime));	
 		coordinatesY = (coordinatesY) + (velocityY * deltaTime) + ((1/2) * (accelerationY) * (deltaTime * deltaTime));
@@ -232,12 +224,22 @@ class object {
 
 		}	
 
-		
 	    void cleanup() {
 
     	    glDeleteVertexArrays(1, &VAO);
     
 		}
+
+};
+
+
+class grid {
+
+	public: 
+
+		int width;
+		int height;
+		float gridCellSize;
 
 };
 
@@ -276,9 +278,9 @@ const GLchar* fragmentShaderSource = R"(
 )";
 
 
-void init(std::vector<object>& objects, int numberOfParticles);
+void init(std::vector<object>& objects, grid& grid1, std::vector<std::vector<std::vector<object*>>>& gr, GLFWwindow* window);
 
-void display(std::vector<object>& objects, box box1, GLFWwindow* window, GLuint& shaderProgram, std::vector<std::vector<object*>>& grid);
+void display(std::vector<object>& objects, box box1, GLFWwindow* window, GLuint& shaderProgram);
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 
@@ -286,24 +288,24 @@ void rendersphere(object& obt);
 
 void renderbox(box box1);
 
-void updateObjectPosition(object& obt);
+void update(std::vector<object>& objects, std::vector<std::vector<std::vector<object*>>>& gr, grid& grid1, box box1);
 
-void updateGrid(std::vector<object>& objects, std::vector<std::vector<object*>>& grid);
+void updateGrid(std::vector<object>& objects, std::vector<std::vector<std::vector<object*>>>& gr, grid& grid1);
 
-void collisionDetection(std::vector<object>& objects, std::vector<std::vector<object*>>& grid);
+void handleCollision(std::vector<object>& objects, std::vector<std::vector<std::vector<object*>>>& gr, grid& grid1);
 
 
 int main() {
 
 	std::vector<object> objects;
 
-	std::vector<std::vector<object*>> grid(GRID_WIDTH, std::vector<object*>(GRID_HEIGHT, nullptr));
+	std::vector<std::vector<std::vector<object*>>> gr;
 
 	box box1;
 
 	GLuint shaderProgram;
 
-	int numberOfParticles = 5;
+	grid grid1;
 
 
     if (!glfwInit()) {
@@ -359,15 +361,13 @@ int main() {
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    init(objects, numberOfParticles);
-
+    init(objects, grid1, gr, window);
 
     while (!glfwWindowShouldClose(window)) {
 
         glfwPollEvents();
-		updateGrid(objects, grid);
-		collisionDetection(objects, grid);
-		display(objects, box1, window, shaderProgram, grid);
+		update(objects, gr, grid1, box1);
+		display(objects, box1, window, shaderProgram);
     
 	}
 
@@ -378,16 +378,18 @@ int main() {
     return 0;
 }
 
-void init(std::vector<object>& objects, int numberOfParticles) {
+
+void init(std::vector<object>& objects, grid& grid1, std::vector<std::vector<std::vector<object*>>>& gr, GLFWwindow* window) {
 
 	float xposition = -0.0;
-	float yposition =  0.0;
+	float yposition = -0.0;
 	float yprime = yposition;
+	float numberObjects = 3;
 	float height = 0.5;
-	float increase = height / numberOfParticles;
+	float increase = height / numberObjects;
 	
 
-	for (int i = 0; i < numberOfParticles; i++) {
+	for (int i = 0; i < numberObjects; i++) {
 
 		objects.push_back(object());
 
@@ -396,7 +398,7 @@ void init(std::vector<object>& objects, int numberOfParticles) {
 		objects[i].color1 = 1.0;
 		objects[i].color2 = 0.0;
 		objects[i].color3 = 0.0;
-		objects[i].e = 0.85;
+		objects[i].e = 1.0;
 
 		objects[i].coordinatesX = xposition;
 		objects[i].coordinatesY = yposition;
@@ -405,7 +407,7 @@ void init(std::vector<object>& objects, int numberOfParticles) {
 		objects[i].velocityY = 0.4;
 
 		objects[i].accelerationX = 0.0;
-		objects[i].accelerationY = -0.0;
+		objects[i].accelerationY = 0.00;
 
 		objects[i].deltaTime = 0.0;
 		objects[i].frameTime = 0.0;
@@ -425,10 +427,22 @@ void init(std::vector<object>& objects, int numberOfParticles) {
 		}
 
 	}
+
+	grid1.width = 50;
+	grid1.width = 50;
+	grid1.gridCellSize = 0.01;
+
+	int gridWidth;
+	int gridHeight;
+	glfwGetFramebufferSize(window, &gridWidth, &gridHeight);
+		
+
+	gr.resize(gridWidth, std::vector<std::vector<object*>>(gridHeight));
 	
 }
 
-void display(std::vector<object>& objects, box box1, GLFWwindow* window, GLuint& shaderProgram, std::vector<std::vector<object*>>& grid) {
+
+void display(std::vector<object>& objects, box box1, GLFWwindow* window, GLuint& shaderProgram) {
 
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -437,13 +451,12 @@ void display(std::vector<object>& objects, box box1, GLFWwindow* window, GLuint&
 
     glUseProgram(shaderProgram);
 
-
 	for (int i = 0; i < objects.size(); i++) {
-		
-		objects[i].updateObjectPosition(objects, box1, grid);
+
 		rendersphere(objects[i]);
 
 	}
+
 
 	renderbox(box1);
 
@@ -451,11 +464,13 @@ void display(std::vector<object>& objects, box box1, GLFWwindow* window, GLuint&
 
 }
 
+
 void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
 
     glViewport(0, 0, width, height);
 
 }
+
 
 void rendersphere(object& obt) {
 
@@ -465,6 +480,7 @@ void rendersphere(object& obt) {
 	glBindVertexArray(0);
  
 }
+
 
 void renderbox(box box1) {
 
@@ -478,75 +494,95 @@ void renderbox(box box1) {
 
 }
 
-void updateGrid(std::vector<object>& objects, std::vector<std::vector<object*>>& grid) {
 
-	float sum = 1 / gridCellSize;
-
-	for (int x = 0; x < GRID_WIDTH; x++) {
-        		
-		for (int y = 0; y < GRID_HEIGHT; y++) {
-            
-			grid[x][y] = nullptr;
-        		
-		}
-    		
-	}
+void update(std::vector<object>& objects, std::vector<std::vector<std::vector<object*>>>& gr, grid& grid1, box box1) {
 
 	for (int i = 0; i < objects.size(); i++) {
 
-		int gridX = static_cast<int>((objects[i].coordinatesX / gridCellSize) + (sum));
-		int gridY = static_cast<int>((objects[i].coordinatesY / gridCellSize) + (sum));
-
-		if (gridX >= 0 && gridX < GRID_WIDTH && gridY >= 0 && gridY < GRID_HEIGHT) {
-
-			grid[gridX][gridY] = &objects[i];
-
-		}
+		objects[i].updateObjectPosition(objects);
+		objects[i].borderCollision(box1);
 
 	}
-	
+
+	updateGrid(objects, gr, grid1);
+	handleCollision(objects, gr, grid1);
+
 }
 
 
-void collisionDetection(std::vector<object>& objects, std::vector<std::vector<object*>>& grid) {
-	
-	float sum = 1 / gridCellSize;
+void updateGrid(std::vector<object>& objects, std::vector<std::vector<std::vector<object*>>>& gr, grid& grid1) {
+
+	float sum = 1 / grid1.gridCellSize;
+
+	for (int x = 0; x < gr.size(); x++) {
+
+		for (int y = 0; y < gr[x].size(); y++) {
+
+			gr[x][y].clear();
+
+		}
+
+	}
 
 	for (int i = 0; i < objects.size(); i++) {
 
-		int actualCellX = static_cast<int>((objects[i].coordinatesX / gridCellSize) + sum);
-		int actualCellY = static_cast<int>((objects[i].coordinatesY / gridCellSize) + sum);
+		int actualCellX = static_cast<int>((objects[i].coordinatesX / grid1.gridCellSize) + sum);
+		int actualCellY = static_cast<int>((objects[i].coordinatesY / grid1.gridCellSize) + sum);
 
-		for (int dx = -1; dx <= 1; dx++) {
+		gr[actualCellX][actualCellY].push_back(&objects[i]);
 
-			for (int dy = -1; dy <= 1; dy++) {
+	}
 
-				int comparasionCellX = actualCellX + dx;
-				int comparasionCellY = actualCellY + dy;
+}
 
-				if (comparasionCellX >= 0 && comparasionCellX < GRID_WIDTH && comparasionCellY >= 0 && comparasionCellY < GRID_HEIGHT) {
 
-					float dx = (grid[actualCellX][actualCellY]->coordinatesX - grid[comparasionCellX][comparasionCellY]->coordinatesX) - (grid[actualCellX][actualCellY]->radius - grid[comparasionCellX][comparasionCellY]->radius);
-					float dy = (grid[actualCellX][actualCellY]->coordinatesY - grid[comparasionCellX][comparasionCellY]->coordinatesY) - (grid[actualCellX][actualCellY]->radius - grid[comparasionCellX][comparasionCellY]->radius);
-					float distance = sqrt((dx * dx) + (dy * dy));
-	
-					float limit = (grid[actualCellX][actualCellY]->radius) + (grid[comparasionCellX][comparasionCellY]->radius);
-		
-					if (distance <= limit) {
+void handleCollision(std::vector<object>& objects, std::vector<std::vector<std::vector<object*>>>& gr, grid& grid1) {
 
-						float normalX = dx / distance;
-						float normalY = dy / distance;
+	for (int x = 0; x < grid1.width - 1; x++) {
 
-						float relativeVelocityX = grid[actualCellX][actualCellY]->velocityX - grid[comparasionCellX][comparasionCellY]->velocityX;
-						float relativeVelocityY = grid[actualCellX][actualCellY]->velocityY - grid[comparasionCellX][comparasionCellY]->velocityY;
+		for (int y = 0; y < grid1.height - 1; y++) {
 
-						float dotProduct = (relativeVelocityX * normalX) + (relativeVelocityY * normalY);
+			int actualCellX = x;
+			int actualCellY = y;
 
-						grid[actualCellX][actualCellY]->velocityX += normalX * dotProduct;
-						grid[actualCellX][actualCellY]->velocityY += normalY * dotProduct;		
-		
-						grid[comparasionCellX][comparasionCellY]->velocityX -= normalX * dotProduct;
-						grid[comparasionCellX][comparasionCellY]->velocityY -= normalY * dotProduct;
+			for (int dx = -1; dx <= 1; dx++) {
+
+				for (int dy = -1; dy <= 1; dy++) {
+
+					int comparasionCellX = actualCellX + dx;
+					int comparasionCellY = actualCellY + dy;
+
+					if (actualCellX >= 0 && actualCellX < grid1.width && comparasionCellY >= 0 && comparasionCellY < grid1.height) {
+
+						for (int i = 0; i < gr[actualCellX][actualCellY].size(); i++) {
+
+							for (int j = 0; j < gr[comparasionCellX][comparasionCellY].size(); j++) {
+
+								float distanceX = gr[i][actualCellX][actualCellY]->coordinatesX - gr[j][comparasionCellX][comparasionCellY]->coordinatesX;
+								float distanceY = gr[i][actualCellX][actualCellY]->coordinatesY - gr[j][comparasionCellX][comparasionCellY]->coordinatesY;
+								float distance = sqrt((distanceX * distanceX) + (distanceY * distanceY));
+
+								float limit = gr[i][actualCellX][actualCellY]->radius + gr[j][comparasionCellX][comparasionCellY]->radius;
+
+								if (distance <= limit) {
+
+									float normalX = distanceX / distance;
+									float normalY = distanceY / distance;
+
+									float relativeVelocityX = gr[i][actualCellX][actualCellY]->radius - gr[j][comparasionCellX][comparasionCellY]->radius;
+									float relativeVelocityY = gr[i][actualCellX][actualCellY]->radius - gr[j][comparasionCellX][comparasionCellY]->radius;
+									float dotProduct = (normalX * relativeVelocityX) + (normalY * relativeVelocityY);
+
+									gr[i][actualCellX][actualCellY]->velocityX += normalX * dotProduct;
+									gr[i][actualCellX][actualCellY]->velocityY += normalY * dotProduct;
+									gr[j][comparasionCellX][comparasionCellY]->velocityX -= normalX * dotProduct;
+									gr[j][comparasionCellX][comparasionCellY]->velocityY -= normalY * dotProduct;
+
+								}
+
+							}
+
+						}
 
 					}
 
@@ -556,6 +592,6 @@ void collisionDetection(std::vector<object>& objects, std::vector<std::vector<ob
 
 		}
 
-	}
+	}	
 
 }
