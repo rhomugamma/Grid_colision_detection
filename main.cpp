@@ -8,6 +8,8 @@ const float PI = 3.14159265358979323;
 
 const float g = 9.80665;
 
+const int iterations = 3;
+
 
 class box {
 
@@ -49,6 +51,8 @@ class box {
 		};
 
 		GLuint VAO;
+
+		float e = 1.0;
 
 		void renderBoxObject() {
 
@@ -95,11 +99,8 @@ class object {
 		float e;
 
 		//Rendering properties
-		int iterations = 3;
 		float alpha = (360 / iterations) * (2 * PI / 360);
 		float beta = alpha;
-		/* const static int verticesArraySize = 6 * iterations; */
-		/* const static int colorsArraySize = 9 * iterations; */
 		GLfloat vertices[6*iterations];													
 		GLfloat colors[9*iterations];
 		GLuint VAO;
@@ -125,7 +126,7 @@ class object {
 			frameTime = totalTime;
 
 
-			for (int i = 0; i < 6 * iterations; i += 6) {
+			for (int i = 0; i < ((sizeof(vertices)) / (sizeof(vertices[0]))); i += 6) {
 
 				vertices[i] = coordinatesX;
         		vertices[i + 1] = coordinatesY;
@@ -140,7 +141,7 @@ class object {
 
 			};
 
-    		for (int i = 0; i < 9 * iterations; i += 3) {
+    		for (int i = 0; i < ((sizeof(colors)) / (sizeof(colors[0]))); i += 3) {
 
 		        colors[i] = color1;
        			colors[i + 1] = color2;
@@ -164,7 +165,7 @@ class object {
 		velocityY = (velocityY) + ((accelerationY) * (deltaTime));
 
 		
-		for (int i = 0; i < 6 * iterations; i += 6) {
+		for (int i = 0; i < (sizeof(vertices) / sizeof(vertices[0])); i += 6) {
 
 				vertices[i] = coordinatesX;
 	    	    vertices[i + 1] = coordinatesY;
@@ -211,14 +212,14 @@ class object {
 
 			if (coordinatesX + radius > box1.verticesbox[2] || coordinatesX - radius < box1.verticesbox[0]) {
 
-				velocityX =	((velocityX) * ((mass) - (box1.mass * e))) / (mass + box1.mass);
+				velocityX =	((velocityX) * ((mass) - (box1.mass * box1.e))) / (mass + box1.mass);
 
 			}
 				
 				
 			else if (coordinatesY + radius > box1.verticesbox[7] || coordinatesY - radius < box1.verticesbox[1]) {
 
-				velocityY =	((velocityY) * ((mass) - (box1.mass * e))) / (mass + box1.mass);
+				velocityY =	((velocityY) * ((mass) - (box1.mass * box1.e))) / (mass + box1.mass);
 
 			}
 
@@ -436,10 +437,6 @@ void init(std::vector<object>& objects, grid& grid1, std::vector<std::vector<std
 	int windowHeight;
 	glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
 		
-	/* int gridWidth = windowWidth / grid1.gridCellSize + 1; */
-	/* int gridHeight = windowHeight / grid1.gridCellSize + 1; */
-
-	/* gr.resize(gridWidth, std::vector<std::vector<object*>>(gridHeight)); */
 	gr.resize(windowWidth, std::vector<std::vector<object*>>(windowHeight));
 	
 }
@@ -479,7 +476,7 @@ void rendersphere(object& obt) {
 
 	obt.renderObject();
 	glBindVertexArray(obt.VAO);
-	glDrawArrays(GL_TRIANGLES, 0, 3 * obt.iterations);
+	glDrawArrays(GL_TRIANGLES, 0, 3 * iterations);
 	glBindVertexArray(0);
  
 }
@@ -547,15 +544,12 @@ void handleCollision(std::vector<object>& objects, std::vector<std::vector<std::
 
     // Loop through each cell in the grid
     for (int x = 0; x < gr.size(); x++) {
-        for (int y = 0; y < gr[x].size(); y++) {
-            // Get the list of objects in the current cell
-            /* std::vector<object*>& cellObjects = gr[x][y]; */
 
+        for (int y = 0; y < gr[x].size(); y++) {
             // Check for collisions within the current cell
             for (int i = 0; i < gr[x][y].size(); i++) {
 
                 for (int j = i + 1; j < gr[x][y].size(); j++) {
-
                     // Calculate the distance between the two objects
                     float dx = gr[x][y][i]->coordinatesX - gr[x][y][j]->coordinatesX;
                     float dy = gr[x][y][i]->coordinatesY - gr[x][y][j]->coordinatesY;
@@ -581,6 +575,13 @@ void handleCollision(std::vector<object>& objects, std::vector<std::vector<std::
 
 						gr[x][y][j]->velocityX += impulse * gr[x][y][i]->mass * normalX;
 						gr[x][y][j]->velocityY += impulse * gr[x][y][i]->mass * normalY;
+
+						
+						/* gr[x][y][i]->velocityX = ((gr[x][y][i]->velocityX) * ((gr[x][y][i]->mass) - (gr[x][y][j]->mass * gr[x][y][i]->e))) / (gr[x][y][i]->mass + gr[x][y][j]->mass); */
+						/* gr[x][y][i]->velocityY = ((gr[x][y][i]->velocityY) * ((gr[x][y][i]->mass) - (gr[x][y][j]->mass * gr[x][y][i]->e))) / (gr[x][y][i]->mass + gr[x][y][j]->mass); */
+						
+						/* gr[x][y][j]->velocityX = ((gr[x][y][j]->velocityX) * ((gr[x][y][j]->mass) - (gr[x][y][i]->mass * gr[x][y][j]->e))) / (gr[x][y][j]->mass + gr[x][y][i]->mass); */
+						/* gr[x][y][j]->velocityY = ((gr[x][y][j]->velocityY) * ((gr[x][y][j]->mass) - (gr[x][y][i]->mass * gr[x][y][j]->e))) / (gr[x][y][j]->mass + gr[x][y][i]->mass); */
 
 	                }
     	        
