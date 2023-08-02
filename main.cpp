@@ -96,12 +96,12 @@ class object {
 
 		//Rendering properties
 		int iterations = 3;
-		float alpha = (360 / 3) * (2 * PI / 360);
+		float alpha = (360 / iterations) * (2 * PI / 360);
 		float beta = alpha;
 		/* const static int verticesArraySize = 6 * iterations; */
 		/* const static int colorsArraySize = 9 * iterations; */
-		GLfloat vertices[18];													
-		GLfloat colors[27];
+		GLfloat vertices[6*iterations];													
+		GLfloat colors[9*iterations];
 		GLuint VAO;
 
 		//Goberning characteristics
