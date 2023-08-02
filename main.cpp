@@ -4,11 +4,30 @@
 #include <math.h>
 #include <vector>
 
+
 const float PI = 3.14159265358979323;
 
 const float g = 9.80665;
 
 const int iterations = 3;
+
+const float h = 5000.0;
+
+const float P_0 = 101.325;
+
+const float T_0 = 15 + 273.15;
+
+const float T_lr = 0.0065;
+
+const float T = (T_0) - (T_lr * h);
+
+const float M_air = 0.02896;
+
+const float R = 287.05;
+
+const float	C_d = 100;
+
+const float N_A = 6.02214076 * pow(10, 23);
 
 
 class box {
@@ -84,6 +103,7 @@ class box {
 		}
 
 };
+
 
 class object {
 
@@ -161,8 +181,11 @@ class object {
 		coordinatesX = (coordinatesX) + (velocityX * deltaTime) + ((1/2) * (accelerationX) * (deltaTime * deltaTime));	
 		coordinatesY = (coordinatesY) + (velocityY * deltaTime) + ((1/2) * (accelerationY) * (deltaTime * deltaTime));
 
-		velocityX = (velocityX) + ((accelerationX) * (deltaTime));
-		velocityY = (velocityY) + ((accelerationY) * (deltaTime));
+		/* velocityX = (velocityX) + ((accelerationX) * (deltaTime)); */
+		/* velocityY = (velocityY) + ((accelerationY) * (deltaTime)); */
+
+		velocityX = velocityX + sqrt((2 * mass * accelerationX * exp((M_air * g * h) / (R * T))) / (C_d * PI * radius * radius));
+		velocityY = velocityY + sqrt((2 * mass * accelerationY * exp((M_air * g * h) / (R * T))) / (C_d * PI * radius * radius));
 
 		
 		for (int i = 0; i < (sizeof(vertices) / sizeof(vertices[0])); i += 6) {
@@ -395,11 +418,11 @@ void init(std::vector<object>& objects, grid& grid1, std::vector<std::vector<std
 		objects.push_back(object());
 
 		objects[i].radius = 0.01;						//0.001538
-		objects[i].mass = 4.809 * pow(10, -23);
+		objects[i].mass = M_air / N_A;
 		objects[i].color1 = 1.0;
 		objects[i].color2 = 0.0;
 		objects[i].color3 = 0.0;
-		objects[i].e = 1.0;
+		objects[i].e = 0.75;
 
 		objects[i].coordinatesX = xposition;
 		objects[i].coordinatesY = yposition;
@@ -568,20 +591,14 @@ void handleCollision(std::vector<object>& objects, std::vector<std::vector<std::
 						float relativeVelocityY = gr[x][y][i]->velocityY - gr[x][y][j]->velocityY;
 
 						float dotProduct = (normalX * relativeVelocityX) + (normalY * relativeVelocityY);
-						float impulse = (2.0f * dotProduct) / (gr[x][y][i]->mass + gr[x][y][j]->mass);
+						float impulse = ((1 + gr[x][y][i]->e) * dotProduct) / (gr[x][y][i]->mass + gr[x][y][j]->mass);
+
 
 						gr[x][y][i]->velocityX -= impulse * gr[x][y][j]->mass * normalX;
 						gr[x][y][i]->velocityY -= impulse * gr[x][y][j]->mass * normalY;
 
 						gr[x][y][j]->velocityX += impulse * gr[x][y][i]->mass * normalX;
 						gr[x][y][j]->velocityY += impulse * gr[x][y][i]->mass * normalY;
-
-						
-						/* gr[x][y][i]->velocityX = ((gr[x][y][i]->velocityX) * ((gr[x][y][i]->mass) - (gr[x][y][j]->mass * gr[x][y][i]->e))) / (gr[x][y][i]->mass + gr[x][y][j]->mass); */
-						/* gr[x][y][i]->velocityY = ((gr[x][y][i]->velocityY) * ((gr[x][y][i]->mass) - (gr[x][y][j]->mass * gr[x][y][i]->e))) / (gr[x][y][i]->mass + gr[x][y][j]->mass); */
-						
-						/* gr[x][y][j]->velocityX = ((gr[x][y][j]->velocityX) * ((gr[x][y][j]->mass) - (gr[x][y][i]->mass * gr[x][y][j]->e))) / (gr[x][y][j]->mass + gr[x][y][i]->mass); */
-						/* gr[x][y][j]->velocityY = ((gr[x][y][j]->velocityY) * ((gr[x][y][j]->mass) - (gr[x][y][i]->mass * gr[x][y][j]->e))) / (gr[x][y][j]->mass + gr[x][y][i]->mass); */
 
 	                }
     	        
