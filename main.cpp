@@ -95,13 +95,13 @@ class object {
 		float e;
 
 		//Rendering properties
-		int iterations = 15;
-		float alpha = (360 / 15) * (2 * PI / 360);
+		int iterations = 3;
+		float alpha = (360 / 3) * (2 * PI / 360);
 		float beta = alpha;
 		/* const static int verticesArraySize = 6 * iterations; */
 		/* const static int colorsArraySize = 9 * iterations; */
-		GLfloat vertices[90];													
-		GLfloat colors[135];
+		GLfloat vertices[18];													
+		GLfloat colors[27];
 		GLuint VAO;
 
 		//Goberning characteristics
@@ -382,10 +382,10 @@ int main() {
 void init(std::vector<object>& objects, grid& grid1, std::vector<std::vector<std::vector<object*>>>& gr, GLFWwindow* window) {
 
 	float xposition = -0.0;
-	float yposition = -0.0;
+	float yposition = -0.97;
 	float yprime = yposition;
-	float numberObjects = 3;
-	float height = 0.5;
+	float numberObjects = 30;
+	float height = 1.94;
 	float increase = height / numberObjects;
 	
 
@@ -407,7 +407,7 @@ void init(std::vector<object>& objects, grid& grid1, std::vector<std::vector<std
 		objects[i].velocityY = 0.4;
 
 		objects[i].accelerationX = 0.0;
-		objects[i].accelerationY = 0.00;
+		objects[i].accelerationY = 0.0;
 
 		objects[i].deltaTime = 0.0;
 		objects[i].frameTime = 0.0;
@@ -428,16 +428,19 @@ void init(std::vector<object>& objects, grid& grid1, std::vector<std::vector<std
 
 	}
 
-	grid1.width = 50;
-	grid1.width = 50;
-	grid1.gridCellSize = 0.01;
+	grid1.width = 100;
+	grid1.height = 100;
+	grid1.gridCellSize = objects[0].radius * 2.1;
 
-	int gridWidth;
-	int gridHeight;
-	glfwGetFramebufferSize(window, &gridWidth, &gridHeight);
+	int windowWidth;
+	int windowHeight;
+	glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
 		
+	/* int gridWidth = windowWidth / grid1.gridCellSize + 1; */
+	/* int gridHeight = windowHeight / grid1.gridCellSize + 1; */
 
-	gr.resize(gridWidth, std::vector<std::vector<object*>>(gridHeight));
+	/* gr.resize(gridWidth, std::vector<std::vector<object*>>(gridHeight)); */
+	gr.resize(windowWidth, std::vector<std::vector<object*>>(windowHeight));
 	
 }
 
@@ -529,7 +532,11 @@ void updateGrid(std::vector<object>& objects, std::vector<std::vector<std::vecto
 		int actualCellX = static_cast<int>((objects[i].coordinatesX / grid1.gridCellSize) + sum);
 		int actualCellY = static_cast<int>((objects[i].coordinatesY / grid1.gridCellSize) + sum);
 
-		gr[actualCellX][actualCellY].push_back(&objects[i]);
+		if (actualCellX < grid1.width && actualCellY < grid1.height) {
+
+			gr[actualCellX][actualCellY].push_back(&objects[i]);
+
+		}
 
 	}
 
@@ -538,60 +545,51 @@ void updateGrid(std::vector<object>& objects, std::vector<std::vector<std::vecto
 
 void handleCollision(std::vector<object>& objects, std::vector<std::vector<std::vector<object*>>>& gr, grid& grid1) {
 
-	for (int x = 0; x < grid1.width - 1; x++) {
+    // Loop through each cell in the grid
+    for (int x = 0; x < gr.size(); x++) {
+        for (int y = 0; y < gr[x].size(); y++) {
+            // Get the list of objects in the current cell
+            /* std::vector<object*>& cellObjects = gr[x][y]; */
 
-		for (int y = 0; y < grid1.height - 1; y++) {
+            // Check for collisions within the current cell
+            for (int i = 0; i < gr[x][y].size(); i++) {
 
-			int actualCellX = x;
-			int actualCellY = y;
+                for (int j = i + 1; j < gr[x][y].size(); j++) {
 
-			for (int dx = -1; dx <= 1; dx++) {
+                    // Calculate the distance between the two objects
+                    float dx = gr[x][y][i]->coordinatesX - gr[x][y][j]->coordinatesX;
+                    float dy = gr[x][y][i]->coordinatesY - gr[x][y][j]->coordinatesY;
+                    float distance = sqrt((dx * dx) + (dy * dy));
 
-				for (int dy = -1; dy <= 1; dy++) {
+                    // Check for collision using the radius of the objects
+                    float limit = gr[x][y][i]->radius + gr[x][y][j]->radius;
+                
+					if (distance <= limit) {
+                        // If there is a collision, resolve it by updating the velocities of the objects
+                        // using the simple elastic collision formula
+                        float normalX = dx / distance; // Normal vector in x-direction
+                        float normalY = dy / distance; // Normal vector in y-direction
 
-					int comparasionCellX = actualCellX + dx;
-					int comparasionCellY = actualCellY + dy;
+						float relativeVelocityX = gr[x][y][i]->velocityX - gr[x][y][j]->velocityX;
+						float relativeVelocityY = gr[x][y][i]->velocityY - gr[x][y][j]->velocityY;
 
-					if (actualCellX >= 0 && actualCellX < grid1.width && comparasionCellY >= 0 && comparasionCellY < grid1.height) {
+						float dotProduct = (normalX * relativeVelocityX) + (normalY * relativeVelocityY);
+						float impulse = (2.0f * dotProduct) / (gr[x][y][i]->mass + gr[x][y][j]->mass);
 
-						for (int i = 0; i < gr[actualCellX][actualCellY].size(); i++) {
+						gr[x][y][i]->velocityX -= impulse * gr[x][y][j]->mass * normalX;
+						gr[x][y][i]->velocityY -= impulse * gr[x][y][j]->mass * normalY;
 
-							for (int j = 0; j < gr[comparasionCellX][comparasionCellY].size(); j++) {
+						gr[x][y][j]->velocityX += impulse * gr[x][y][i]->mass * normalX;
+						gr[x][y][j]->velocityY += impulse * gr[x][y][i]->mass * normalY;
 
-								float distanceX = gr[i][actualCellX][actualCellY]->coordinatesX - gr[j][comparasionCellX][comparasionCellY]->coordinatesX;
-								float distanceY = gr[i][actualCellX][actualCellY]->coordinatesY - gr[j][comparasionCellX][comparasionCellY]->coordinatesY;
-								float distance = sqrt((distanceX * distanceX) + (distanceY * distanceY));
-
-								float limit = gr[i][actualCellX][actualCellY]->radius + gr[j][comparasionCellX][comparasionCellY]->radius;
-
-								if (distance <= limit) {
-
-									float normalX = distanceX / distance;
-									float normalY = distanceY / distance;
-
-									float relativeVelocityX = gr[i][actualCellX][actualCellY]->radius - gr[j][comparasionCellX][comparasionCellY]->radius;
-									float relativeVelocityY = gr[i][actualCellX][actualCellY]->radius - gr[j][comparasionCellX][comparasionCellY]->radius;
-									float dotProduct = (normalX * relativeVelocityX) + (normalY * relativeVelocityY);
-
-									gr[i][actualCellX][actualCellY]->velocityX += normalX * dotProduct;
-									gr[i][actualCellX][actualCellY]->velocityY += normalY * dotProduct;
-									gr[j][comparasionCellX][comparasionCellY]->velocityX -= normalX * dotProduct;
-									gr[j][comparasionCellX][comparasionCellY]->velocityY -= normalY * dotProduct;
-
-								}
-
-							}
-
-						}
-
-					}
-
+	                }
+    	        
 				}
-
+        	
 			}
-
+    	
 		}
-
-	}	
+	
+	}
 
 }
