@@ -409,7 +409,7 @@ void init(std::vector<object>& objects, grid& grid1, std::vector<std::vector<std
 	float yposition = -0.97;
 	float yprime = yposition;
 	float numberObjects = 30;
-	float height = 1.94;
+	float height = 0.01;
 	float increase = height / numberObjects;
 	
 
@@ -427,11 +427,11 @@ void init(std::vector<object>& objects, grid& grid1, std::vector<std::vector<std
 		objects[i].coordinatesX = xposition;
 		objects[i].coordinatesY = yposition;
 	
-		objects[i].velocityX = 0.5;
-		objects[i].velocityY = 0.4;
+		objects[i].velocityX = 0.0;
+		objects[i].velocityY = 0.5;
 
 		objects[i].accelerationX = 0.0;
-		objects[i].accelerationY = 0.0;
+		objects[i].accelerationY = -0.1;
 
 		objects[i].deltaTime = 0.0;
 		objects[i].frameTime = 0.0;
