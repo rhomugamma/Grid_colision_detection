@@ -29,6 +29,12 @@ const float	C_d = 100;
 
 const float N_A = 6.02214076 * pow(10, 23);
 
+float V_c = 1.0;
+ 
+const float k = 1.38 * pow(10, -23);
+
+const float d = 3.7 * pow(10, -10);
+
 
 class box {
 
@@ -408,8 +414,8 @@ void init(std::vector<object>& objects, grid& grid1, std::vector<std::vector<std
 	float xposition = -0.0;
 	float yposition = -0.97;
 	float yprime = yposition;
-	float numberObjects = 30;
-	float height = 0.01;
+	float numberObjects = 100;
+	float height = 1.94;
 	float increase = height / numberObjects;
 	
 
@@ -427,11 +433,11 @@ void init(std::vector<object>& objects, grid& grid1, std::vector<std::vector<std
 		objects[i].coordinatesX = xposition;
 		objects[i].coordinatesY = yposition;
 	
-		objects[i].velocityX = 0.0;
+		objects[i].velocityX = 0.4;
 		objects[i].velocityY = 0.5;
 
 		objects[i].accelerationX = 0.0;
-		objects[i].accelerationY = -0.1;
+		objects[i].accelerationY = -0.0;
 
 		objects[i].deltaTime = 0.0;
 		objects[i].frameTime = 0.0;
@@ -593,12 +599,15 @@ void handleCollision(std::vector<object>& objects, std::vector<std::vector<std::
 						float dotProduct = (normalX * relativeVelocityX) + (normalY * relativeVelocityY);
 						float impulse = ((1 + gr[x][y][i]->e) * dotProduct) / (gr[x][y][i]->mass + gr[x][y][j]->mass);
 
+						float dfjhv = ((gr[x][y][i]->velocityX * k) / (3 * sqrt(2) * R * PI * d * d));
 
-						gr[x][y][i]->velocityX -= impulse * gr[x][y][j]->mass * normalX;
-						gr[x][y][i]->velocityY -= impulse * gr[x][y][j]->mass * normalY;
+						std::cout << dfjhv << '\n';
 
-						gr[x][y][j]->velocityX += impulse * gr[x][y][i]->mass * normalX;
-						gr[x][y][j]->velocityY += impulse * gr[x][y][i]->mass * normalY;
+						gr[x][y][i]->velocityX -= (impulse * gr[x][y][j]->mass * normalX) * V_c;
+						gr[x][y][i]->velocityY -= (impulse * gr[x][y][j]->mass * normalY) * V_c;
+
+						gr[x][y][j]->velocityX += (impulse * gr[x][y][i]->mass * normalX) * V_c;
+						gr[x][y][j]->velocityY += (impulse * gr[x][y][i]->mass * normalY) * V_c;
 
 	                }
     	        
