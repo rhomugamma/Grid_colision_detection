@@ -29,7 +29,7 @@ const float	C_d = 100;
 
 const float N_A = 6.02214076 * pow(10, 23);
 
-float V_c = 1.0;
+float V_c = 0.5;
  
 const float k = 1.38 * pow(10, -23);
 
@@ -178,7 +178,7 @@ class object {
 		}
 
 
-		void updateObjectPosition(std::vector<object>& objects) {
+		void updateObjectPosition() {
 
 		GLfloat totalTime = glfwGetTime();
 		deltaTime = totalTime - frameTime;
@@ -187,11 +187,32 @@ class object {
 		coordinatesX = (coordinatesX) + (velocityX * deltaTime) + ((1/2) * (accelerationX) * (deltaTime * deltaTime));	
 		coordinatesY = (coordinatesY) + (velocityY * deltaTime) + ((1/2) * (accelerationY) * (deltaTime * deltaTime));
 
-		/* velocityX = (velocityX) + ((accelerationX) * (deltaTime)); */
-		/* velocityY = (velocityY) + ((accelerationY) * (deltaTime)); */
+		velocityX += accelerationX * deltaTime;
+		velocityY += accelerationY * deltaTime;
 
-		velocityX = velocityX + sqrt((2 * mass * accelerationX * exp((M_air * g * h) / (R * T))) / (C_d * PI * radius * radius));
-		velocityY = velocityY + sqrt((2 * mass * accelerationY * exp((M_air * g * h) / (R * T))) / (C_d * PI * radius * radius));
+		/* if (accelerationX >= 0.0) { */
+
+		/* 	velocityX = velocityX + sqrt((2 * mass * accelerationX * exp((M_air * g * h) / (R * T))) / (C_d * PI * radius * radius)) + (accelerationX * deltaTime); */
+
+		/* } */
+
+		/* if (accelerationY >= 0.0) { */
+
+		/* 	velocityY = velocityY + sqrt((2 * mass * accelerationY * exp((M_air * g * h) / (R * T))) / (C_d * PI * radius * radius)) + (accelerationY * deltaTime); */
+
+		/* } */
+
+		/* if (accelerationX < 0.0) { */
+
+		/* 	velocityX = velocityX - sqrt((2 * mass * (-accelerationX) * exp((M_air * g * h) / (R * T))) / (C_d * PI * radius * radius)) + (accelerationX * deltaTime); */
+
+		/* } */
+
+		/* if (accelerationY < 0.0) { */
+
+		/* 	velocityY = velocityY - sqrt((2 * mass * (-accelerationY) * exp((M_air * g * h) / (R * T))) / (C_d * PI * radius * radius)) + (accelerationY * deltaTime); */
+
+		/* } */
 
 		
 		for (int i = 0; i < (sizeof(vertices) / sizeof(vertices[0])); i += 6) {
@@ -414,7 +435,7 @@ void init(std::vector<object>& objects, grid& grid1, std::vector<std::vector<std
 	float xposition = -0.0;
 	float yposition = -0.97;
 	float yprime = yposition;
-	float numberObjects = 100;
+	float numberObjects = 50;
 	float height = 1.94;
 	float increase = height / numberObjects;
 	
@@ -436,7 +457,7 @@ void init(std::vector<object>& objects, grid& grid1, std::vector<std::vector<std
 		objects[i].velocityX = 0.4;
 		objects[i].velocityY = 0.5;
 
-		objects[i].accelerationX = 0.0;
+		objects[i].accelerationX = -0.0;
 		objects[i].accelerationY = -0.0;
 
 		objects[i].deltaTime = 0.0;
@@ -477,7 +498,6 @@ void display(std::vector<object>& objects, box box1, GLFWwindow* window, GLuint&
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-
     glUseProgram(shaderProgram);
 
 	for (int i = 0; i < objects.size(); i++) {
@@ -486,10 +506,17 @@ void display(std::vector<object>& objects, box box1, GLFWwindow* window, GLuint&
 
 	}
 
-
 	renderbox(box1);
 
 	glfwSwapBuffers(window);
+
+	for (int i = 0; i < objects.size(); i++) {
+
+		objects[i].cleanup();
+
+	}
+
+	box1.cleanup();
 
 }
 
@@ -528,7 +555,7 @@ void update(std::vector<object>& objects, std::vector<std::vector<std::vector<ob
 
 	for (int i = 0; i < objects.size(); i++) {
 
-		objects[i].updateObjectPosition(objects);
+		objects[i].updateObjectPosition();
 		objects[i].borderCollision(box1);
 
 	}
@@ -599,9 +626,7 @@ void handleCollision(std::vector<object>& objects, std::vector<std::vector<std::
 						float dotProduct = (normalX * relativeVelocityX) + (normalY * relativeVelocityY);
 						float impulse = ((1 + gr[x][y][i]->e) * dotProduct) / (gr[x][y][i]->mass + gr[x][y][j]->mass);
 
-						float dfjhv = ((gr[x][y][i]->velocityX * k) / (3 * sqrt(2) * R * PI * d * d));
-
-						std::cout << dfjhv << '\n';
+						/* float V_c = ((gr[x][y][i]->velocityX * k) / (3 * sqrt(2) * R * PI * d * d)); */
 
 						gr[x][y][i]->velocityX -= (impulse * gr[x][y][j]->mass * normalX) * V_c;
 						gr[x][y][i]->velocityY -= (impulse * gr[x][y][j]->mass * normalY) * V_c;
